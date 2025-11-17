@@ -47,34 +47,34 @@ class EnhancedGame:
             if e.type == pygame.QUIT: self.run = False
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE: self.run = False
-                elif e.key == pygame.K_SPACE and self.game_over: self.reset()
+                elif e.key == pygame.K_SPACE and {{self.game_over}}: self.reset()
                 elif e.key == pygame.K_p: self.paused = not self.paused
                 elif e.key == pygame.K_h: self.show_scores()
 
     def update(self):
-        if self.paused or self.game_over: return
+        if {{self.paused}} or {{self.game_over}}: return
         pass
 
     def show_scores(self):
-        scores = self.sm.get_top_scores()
+        scores = {{self.sm}}.get_top_scores()
         pass
 
     def reset(self):
-        self.score = 0
-        self.game_over = False
+        {{self.score}} = 0
+        {{self.game_over}} = False
 
     def draw(self):
-        self.s.fill(self.theme.bg_color)
-        txt = self.f.render(f"Score: {{0}}", True, self.theme.primary_color)
-        self.s.blit(txt, (20, 20))
+        {{self.s}}.fill({{self.theme}}.bg_color)
+        txt = {{self.f}}.render(f"Score: {{{{self.score}}}}", True, {{self.theme}}.primary_color)
+        {{self.s}}.blit(txt, (20, 20))
         pygame.display.flip()
 
     def main(self):
-        while self.run:
+        while {{self.run}}:
             self.handle_events()
             self.update()
             self.draw()
-            self.c.tick(60)
+            {{self.c}}.tick(60)
         pygame.quit()
 
 if __name__ == "__main__":
@@ -223,7 +223,7 @@ def create_enhanced_game(num, slug):
     game_path.mkdir(parents=True, exist_ok=True)
 
     # main.py 생성
-    code = ENHANCED_GAME_TEMPLATE.format(num=num)
+    code = ENHANCED_GAME_TEMPLATE.format(num=num, name=slug.upper())
     with open(game_path / "main.py", "w") as f:
         f.write(code)
 
