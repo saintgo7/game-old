@@ -46,33 +46,42 @@ class GameInfo:
         self.description = description
         self.file = f"game_{number:03d}_{name.lower().replace(' ', '_')}_enhanced.py"
 
-# 샘플 게임 목록 (6개 상세 구현 + 7개 기타)
+# 샘플 게임 목록 (13개 상세 구현 + 5개 추가 = 18개 총 등록)
 GAMES = [
     # 슈팅 게임
     GameInfo(24, "Defender", GameCategory.SHOOTING, "클래식 방어 슈팅"),
     GameInfo(463, "Galaga", GameCategory.SHOOTING, "포메이션 기반 슈팅"),
     GameInfo(141, "Ikaruga", GameCategory.SHOOTING, "탄막 슈팅 게임"),
-    
+    GameInfo(137, "Space Invaders", GameCategory.SHOOTING, "우주 침략자 격퇴"),
+
     # 레이싱 게임
     GameInfo(251, "Formula1", GameCategory.RACING, "고속 레이싱"),
     GameInfo(52, "OutRun", GameCategory.RACING, "열대 레이싱"),
-    
+
     # 퍼즐 게임
     GameInfo(94, "Sokoban", GameCategory.PUZZLE, "박스 밀기 퍼즐"),
     GameInfo(96, "Sudoku", GameCategory.PUZZLE, "숫자 로직 퍼즐"),
-    
+    GameInfo(201, "Tetris", GameCategory.PUZZLE, "떨어지는 블록 퍼즐"),
+
     # RPG 게임
     GameInfo(103, "Dragon Quest", GameCategory.RPG, "클래식 RPG"),
     GameInfo(111, "Ultima", GameCategory.RPG, "고급 RPG"),
-    
+    GameInfo(401, "Final Fantasy", GameCategory.RPG, "턴 기반 던전 RPG"),
+
     # 스포츠 게임
     GameInfo(316, "Tekken", GameCategory.SPORTS, "격투 게임"),
     GameInfo(318, "Street Fighter", GameCategory.SPORTS, "한판 격투"),
-    
+
     # 보드 게임
     GameInfo(77, "Monopoly", GameCategory.BOARD, "부동산 게임"),
     GameInfo(79, "Scrabble", GameCategory.BOARD, "단어 게임"),
+    GameInfo(305, "Chess", GameCategory.BOARD, "체스 전략 게임"),
 ]
+
+# 액션/기타 게임 (게임 숫자 301 = Pac-Man)
+class ActionGame(Enum):
+    """액션 게임 카테고리 추가"""
+    ACTION = "🎮 액션"
 
 class ArcadeLauncher:
     """아케이드 게임 런처"""
