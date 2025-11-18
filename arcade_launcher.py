@@ -153,15 +153,21 @@ class ArcadeLauncher:
 
     def _launch_game(self, game):
         """게임 실행"""
-        # game_NUMX_name_enhanced.py 파일 찾기
-        game_file = f"game_{game.number:03d}_{game.name.lower().replace(' ', '_')}_enhanced.py"
-        
+        # game_NUMX_name_enhanced.py 또는 game_NUMX_name_detailed.py 파일 찾기
+        base_name = f"game_{game.number:03d}_{game.name.lower().replace(' ', '_')}"
+
+        # 상세 구현 버전 먼저 확인
+        game_file = f"{base_name}_detailed.py"
+        if not os.path.exists(game_file):
+            # 강화 버전 확인
+            game_file = f"{base_name}_enhanced.py"
+
         # 현재 디렉토리에서 파일 찾기
         if os.path.exists(game_file):
             subprocess.Popen([sys.executable, game_file])
         else:
             # 게임 파일 없으면 알림
-            print(f"게임 파일을 찾을 수 없습니다: {game_file}")
+            print(f"게임 파일을 찾을 수 없습니다: {base_name}_(detailed|enhanced).py")
 
     def draw_main_menu(self):
         """메인 메뉴 그리기"""
