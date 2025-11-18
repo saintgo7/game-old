@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
-그래픽 테마 및 디자인 시스템
+그래픽 테마 및 디자인 시스템 (향상된 버전)
+- 파티클 이펙트 시스템
+- 고급 애니메이션
+- 시각 효과
 """
 import pygame
+import math
+import random
+from typing import Tuple, List
+from enum import Enum
 
 class Color:
     """색상 팔레트"""
@@ -233,3 +240,143 @@ class ScaleAnimation(Animation):
         """현재 크기"""
         progress = self.get_progress()
         return self.start_scale + (self.end_scale - self.start_scale) * progress
+
+
+class RotateAnimation(Animation):
+    """회전 애니메이션"""
+
+    def __init__(self, duration, start_angle=0, end_angle=360):
+        super().__init__(duration)
+        self.start_angle = start_angle
+        self.end_angle = end_angle
+
+    def get_angle(self):
+        """현재 각도"""
+        progress = self.get_progress()
+        return self.start_angle + (self.end_angle - self.start_angle) * progress
+
+
+class MoveAnimation(Animation):
+    """이동 애니메이션"""
+
+    def __init__(self, duration, start_pos: Tuple[int, int], end_pos: Tuple[int, int]):
+        super().__init__(duration)
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+
+    def get_position(self):
+        """현재 위치"""
+        progress = self.get_progress()
+        x = self.start_pos[0] + (self.end_pos[0] - self.start_pos[0]) * progress
+        y = self.start_pos[1] + (self.end_pos[1] - self.start_pos[1]) * progress
+        return (int(x), int(y))
+
+
+# 파티클 시스템
+class Particle:
+    """개별 파티클"""
+
+    def __init__(self, x, y, vx, vy, color, size=5, lifetime=1000):
+        self.x = x
+        self.y = y
+        self.vx = vx  # x 속도
+        self.vy = vy  # y 속도
+        self.color = color
+        self.size = size
+        self.lifetime = lifetime
+        self.age = 0
+        self.alive = True
+
+    def update(self, dt):
+        """파티클 업데이트"""
+        self.age += dt
+        if self.age >= self.lifetime:
+            self.alive = False
+            return
+
+        # 중력 적용
+        self.vy += 0.3  # 중력 가속도
+
+        # 위치 업데이트
+        self.x += self.vx * (dt / 1000.0)
+        self.y += self.vy * (dt / 1000.0)
+
+    def draw(self, surface):
+        """파티클 그리기"""
+        if not self.alive:
+            return
+
+        # 나이에 따라 투명도 감소
+        progress = self.age / self.lifetime
+        alpha = int(255 * (1 - progress))
+
+        try:
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.size)
+        except:
+            pass
+
+
+class ParticleSystem:
+    """파티클 이펙트 시스템"""
+
+    def __init__(self):
+        self.particles: List[Particle] = []
+
+    def emit(self, x, y, count=10, speed_range=(1, 5), color=Color.WHITE,
+             angle_range=None, lifetime=1000):
+        """파티클 방출"""
+        if angle_range is None:
+            angle_range = (0, 360)
+
+        for _ in range(count):
+            angle = random.uniform(math.radians(angle_range[0]),
+                                  math.radians(angle_range[1]))
+            speed = random.uniform(speed_range[0], speed_range[1])
+
+            vx = math.cos(angle) * speed
+            vy = math.sin(angle) * speed
+
+            particle = Particle(x, y, vx, vy, color, size=5, lifetime=lifetime)
+            self.particles.append(particle)
+
+    def emit_explosion(self, x, y, color=Color.YELLOW, count=20):
+        """폭발 파티클 방출"""
+        self.emit(x, y, count=count, speed_range=(2, 8),
+                 color=color, angle_range=(0, 360), lifetime=800)
+
+    def emit_smoke(self, x, y, count=5):
+        """연기 파티클 방출"""
+        self.emit(x, y, count=count, speed_range=(0.5, 2),
+                 color=Color.GRAY, angle_range=(0, 360), lifetime=1500)
+
+    def emit_sparkle(self, x, y, color=Color.WHITE, count=15):
+        """반짝임 파티클 방출"""
+        self.emit(x, y, count=count, speed_range=(1, 3),
+                 color=color, angle_range=(0, 360), lifetime=600)
+
+    def emit_directional(self, x, y, angle, spread=45, count=10,
+                        speed_range=(2, 5), color=Color.WHITE):
+        """방향성 파티클 방출"""
+        angle_range = (angle - spread/2, angle + spread/2)
+        self.emit(x, y, count=count, speed_range=speed_range,
+                 color=color, angle_range=angle_range, lifetime=800)
+
+    def update(self, dt):
+        """전체 파티클 업데이트"""
+        for particle in self.particles[:]:
+            particle.update(dt)
+            if not particle.alive:
+                self.particles.remove(particle)
+
+    def draw(self, surface):
+        """전체 파티클 그리기"""
+        for particle in self.particles:
+            particle.draw(surface)
+
+    def clear(self):
+        """모든 파티클 제거"""
+        self.particles.clear()
+
+    def is_active(self):
+        """활성 파티클이 있는지 확인"""
+        return len(self.particles) > 0
