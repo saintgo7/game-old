@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
-멀티플레이 시스템 (로컬 및 네트워크)
+멀티플레이 시스템 (로컬 및 네트워크, 향상된 버전)
+- 로컬 멀티플레이 (splitscreen)
+- 네트워크 멀티플레이
+- 게임 상태 동기화
+- 매치메이킹
 """
 import socket
 import json
 from enum import Enum
 from datetime import datetime
+import pygame
 
 
 class GameMode(Enum):
@@ -155,20 +160,33 @@ class NetworkMultiplayer:
 
 
 class GameSync:
-    """게임 상태 동기화"""
+    """게임 상태 동기화 (향상된 버전)"""
 
     def __init__(self):
         self.state = {
             "game_over": False,
             "scores": {},
             "timestamp": None,
-            "round": 1
+            "round": 1,
+            "game_time": 0,
+            "paused": False
         }
+        self.sync_interval = 50  # 50ms마다 동기화
+        self.last_sync = datetime.now()
 
     def update_state(self, data):
         """상태 업데이트"""
         self.state.update(data)
         self.state["timestamp"] = datetime.now().isoformat()
+
+    def should_sync(self):
+        """동기화해야 하는지 확인"""
+        elapsed = (datetime.now() - self.last_sync).total_seconds() * 1000
+        return elapsed >= self.sync_interval
+
+    def mark_synced(self):
+        """동기화 완료 표시"""
+        self.last_sync = datetime.now()
 
     def get_state(self):
         """상태 반환"""
@@ -180,8 +198,22 @@ class GameSync:
             "game_over": False,
             "scores": {},
             "timestamp": None,
-            "round": 1
+            "round": 1,
+            "game_time": 0,
+            "paused": False
         }
+        self.last_sync = datetime.now()
+
+    def add_score(self, player_id, points):
+        """플레이어 점수 추가"""
+        if player_id not in self.state["scores"]:
+            self.state["scores"][player_id] = 0
+        self.state["scores"][player_id] += points
+
+    def get_leaderboard(self):
+        """순위표 반환"""
+        scores = self.state["scores"]
+        return sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
 
 class Matchmaking:
@@ -232,3 +264,121 @@ class Matchmaking:
             if match["id"] == match_id:
                 return match
         return None
+
+
+class SplitScreenManager:
+    """로컬 멀티플레이 splitscreen 관리"""
+
+    def __init__(self, num_players=2, screen_width=800, screen_height=600):
+        self.num_players = num_players
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.surfaces = []
+        self.player_rects = []
+        self.setup_splitscreen()
+
+    def setup_splitscreen(self):
+        """Splitscreen 설정"""
+        if self.num_players == 2:
+            # 좌우 분할
+            half_width = self.screen_width // 2
+            self.player_rects = [
+                pygame.Rect(0, 0, half_width, self.screen_height),  # Player 1 (left)
+                pygame.Rect(half_width, 0, half_width, self.screen_height)  # Player 2 (right)
+            ]
+        elif self.num_players == 4:
+            # 4분할
+            half_width = self.screen_width // 2
+            half_height = self.screen_height // 2
+            self.player_rects = [
+                pygame.Rect(0, 0, half_width, half_height),  # Top-left
+                pygame.Rect(half_width, 0, half_width, half_height),  # Top-right
+                pygame.Rect(0, half_height, half_width, half_height),  # Bottom-left
+                pygame.Rect(half_width, half_height, half_width, half_height)  # Bottom-right
+            ]
+        else:
+            # 기본값: 2분할
+            self.player_rects = [
+                pygame.Rect(0, 0, self.screen_width, self.screen_height)
+            ]
+
+    def get_player_surface(self, player_id):
+        """플레이어별 서브서피스 반환"""
+        if 0 <= player_id < len(self.player_rects):
+            return self.player_rects[player_id]
+        return None
+
+    def draw_borders(self, surface):
+        """분할 경계선 그리기"""
+        if self.num_players == 2:
+            # 수직선
+            pygame.draw.line(surface, (128, 128, 128),
+                           (self.screen_width // 2, 0),
+                           (self.screen_width // 2, self.screen_height), 2)
+        elif self.num_players == 4:
+            # 수직선
+            pygame.draw.line(surface, (128, 128, 128),
+                           (self.screen_width // 2, 0),
+                           (self.screen_width // 2, self.screen_height), 2)
+            # 수평선
+            pygame.draw.line(surface, (128, 128, 128),
+                           (0, self.screen_height // 2),
+                           (self.screen_width, self.screen_height // 2), 2)
+
+    def blit_player_view(self, main_surface, player_id, player_surface):
+        """플레이어 뷰를 메인 서피스에 그리기"""
+        if 0 <= player_id < len(self.player_rects):
+            rect = self.player_rects[player_id]
+            # 플레이어 서피스를 해당 영역에 복사
+            if player_surface:
+                scaled = pygame.transform.scale(player_surface,
+                                              (rect.width, rect.height))
+                main_surface.blit(scaled, rect)
+
+
+class InputHandler:
+    """멀티플레이 입력 처리"""
+
+    # 플레이어 1 키 바인딩 (WASD)
+    PLAYER1_KEYS = {
+        "up": pygame.K_w,
+        "down": pygame.K_s,
+        "left": pygame.K_a,
+        "right": pygame.K_d,
+        "action": pygame.K_SPACE
+    }
+
+    # 플레이어 2 키 바인딩 (화살표)
+    PLAYER2_KEYS = {
+        "up": pygame.K_UP,
+        "down": pygame.K_DOWN,
+        "left": pygame.K_LEFT,
+        "right": pygame.K_RIGHT,
+        "action": pygame.K_RETURN
+    }
+
+    @staticmethod
+    def get_player_input(player_id, keys_pressed):
+        """플레이어 입력 가져오기"""
+        if player_id == 0:
+            key_map = InputHandler.PLAYER1_KEYS
+        elif player_id == 1:
+            key_map = InputHandler.PLAYER2_KEYS
+        else:
+            return {}
+
+        return {
+            "up": keys_pressed[key_map["up"]],
+            "down": keys_pressed[key_map["down"]],
+            "left": keys_pressed[key_map["left"]],
+            "right": keys_pressed[key_map["right"]],
+            "action": keys_pressed[key_map["action"]]
+        }
+
+    @staticmethod
+    def get_all_players_input(num_players, keys_pressed):
+        """모든 플레이어 입력 가져오기"""
+        inputs = {}
+        for player_id in range(num_players):
+            inputs[player_id] = InputHandler.get_player_input(player_id, keys_pressed)
+        return inputs
