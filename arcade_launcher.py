@@ -173,7 +173,19 @@ class ArcadeLauncher:
 
         # 현재 디렉토리에서 파일 찾기
         if os.path.exists(game_file):
-            subprocess.Popen([sys.executable, game_file])
+            # 게임을 독립적으로 실행 (현재 디렉토리에서)
+            game_path = os.path.abspath(game_file)
+            game_dir = os.path.dirname(game_path)
+
+            try:
+                subprocess.Popen(
+                    [sys.executable, game_file],
+                    cwd=game_dir,  # 게임 디렉토리에서 실행
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            except Exception as e:
+                print(f"게임 실행 중 오류: {game_file} - {e}")
         else:
             # 게임 파일 없으면 알림
             print(f"게임 파일을 찾을 수 없습니다: {base_name}_(detailed|enhanced).py")
